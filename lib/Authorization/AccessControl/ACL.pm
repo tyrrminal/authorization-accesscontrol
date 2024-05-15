@@ -17,12 +17,22 @@ sub new($class, %params) {
 
   die("Unsupported params: ", join(', ', keys(%params))) if(keys(%params));
 
+  Readonly::Hash1 my %hooks => (
+    on_permit => [],
+    on_deny   => []
+  );
+
   Readonly::Hash1 my %data => (
     _base   => $base,
     _role   => $role,
     _grants => ($base ? undef : []), # prevent privs from being saved in non-base instances
+    _hooks  => ($base ? undef : \%hooks),
   );
   bless(\%data, $class);
+}
+
+sub hook($self, $type, $sub) {
+  push($self->_base_instance->{_hooks}->{$type}->@*, $sub);
 }
 
 sub clone($self) {
@@ -66,6 +76,10 @@ sub get_grants($self, %filters) {
 sub request($self) {
   warn("Warning: Calling `roles` on the result of `role` or `grant` calls may not yield expected results\n") if($self->{_base});
   return Authorization::AccessControl::Request->new(acl => $self->_base_instance);
+}
+
+sub _event($self, $type, $ctx) {
+  $_->($ctx) foreach ($self->_base_instance->{_hooks}->{$type}->@*);
 }
 
 =head1 AUTHOR

@@ -4,11 +4,15 @@ use warnings;
 
 use Authorization::AccessControl::Dispatch;
 use Readonly;
+use Scalar::Util qw(looks_like_number);
 
 use constant true  => !0;
 use constant false => !1;
 
 use experimental qw(signatures);
+
+use overload
+  '""' => \&to_string;
 
 sub new($class, %params) {
   my $acl         = delete($params{acl});
@@ -30,6 +34,22 @@ sub new($class, %params) {
     _dyn_attrs_f    => $dyn_attrs_f,
   };
   bless($data, $class);
+}
+
+sub to_string($self, @params) {
+  my $roles = $self->{_roles}->@* ? '['.join(',', $self->{_roles}->@*).']' : '';
+  my $attributes = '';
+  my $resource = $self->{_resource} // '{NO_RESOURCE}';
+  my $action = $self->{_action} // '{NO_ACTION}';
+  foreach (keys($self->{_attributes}->%*)) {
+    my $v;
+    if($self->{_attributes}->{$_}) { $v = $self->{_attributes}->{$_} }
+    elsif(looks_like_number($self->{_attributes}->{$_})) { $v = 0 }
+    else { $v = 'false'}
+    $attributes .= "$_=$v,";
+  }
+  chop($attributes);
+  $roles.$resource.' => '.$action.'('.$attributes.')';
 }
 
 sub __properties($self) {
@@ -90,7 +110,12 @@ sub permitted($self) {
       attributes     => $self->{_attributes},
     ) } 
     $self->{_acl}->get_grants;
-  return $grants[0];
+  if(@grants) {
+    $self->{_acl}->_event(on_permit => $grants[0]); 
+    return true;
+  }
+  $self->{_acl}->_event(on_deny => $self);
+  return false;
 }
 
 sub yield($self, $get_obj) {
