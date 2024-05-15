@@ -56,7 +56,11 @@ sub grant($self, $resource, $action, $restrictions = undef) {
     action       => $action,
     restrictions => $restrictions,
   );
-  push($self->_base_instance->{_grants}->@*, $p);
+  if(any { $p->is_equal($_)} $self->_base_instance->{_grants}->@*) {
+    warn("skipping duplicate grant: $p\n");
+  } else {
+    push($self->_base_instance->{_grants}->@*, $p);
+  }
   return $self
 }
 
