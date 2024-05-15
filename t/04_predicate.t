@@ -24,15 +24,15 @@ ac
     ->grant(Post => 'delete', {own => true});
 
 is(
-  !!ac->roles(qw(admin super))->perform('read')->on_resource('User')->permitted,
+  !!ac->request->with_roles(qw(admin super))->with_action('read')->with_resource('User')->permitted,
   true, 'Admin/Super read user permitted');
 
 is(
-  !!ac->roles()->perform('read')->on_resource('Post')->with_attributes({own => true})->permitted,
+  !!ac->request->with_action('read')->with_resource('Post')->with_attributes({own => true})->permitted,
   true, 'User read own post permitted');
 
 is(
-  !!ac->roles()->perform('read')->on_resource('Post')->permitted,
+  !!ac->request->with_action('read')->with_resource('Post')->permitted,
   false, 'Not permitted without attributes');
 
 done_testing;
