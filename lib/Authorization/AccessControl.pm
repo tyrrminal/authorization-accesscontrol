@@ -10,11 +10,11 @@ use experimental qw(signatures);
 
 use Exporter 'import';
 
-our @EXPORT_OK = qw(ac);
+our @EXPORT_OK = qw(acl);
 
-sub ac() {
-  state $ac = Authorization::AccessControl::ACL->new();
-  $ac;
+sub acl() {
+  state $acl = Authorization::AccessControl::ACL->new();
+  $acl;
 }
 
 =head1 AUTHOR

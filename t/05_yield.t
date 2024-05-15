@@ -3,14 +3,14 @@ use warnings;
 
 use Test2::V0;
 
-use Authorization::AccessControl qw(ac);
+use Authorization::AccessControl qw(acl);
 
 use experimental qw(signatures);
 
 use constant true => !0;
 use constant false => !1;
 
-ac
+acl
   ->role('admin')
     ->grant(User => 'read')
     ->grant(User => 'update')
@@ -24,25 +24,25 @@ ac
     ->grant(Post => 'delete', {own => true});
 
 my $r = [];
-ac->request->with_action('read')->with_resource('Post')->yield(sub() { 'post' })
+acl->request->with_action('read')->with_resource('Post')->yield(sub() { 'post' })
   ->denied(sub { push($r->@*, "d") });
 is($r, ['d'], 'yield without necessary attributes');
 
 $r = [];
-ac->request->with_action('read')->with_resource('Post')->with_attributes({own => true})
+acl->request->with_action('read')->with_resource('Post')->with_attributes({own => true})
   ->yield(sub() { 'post' })
   ->granted(sub($entity) { push($r->@*, $entity) });
 is($r, ['post'], 'yield with necessary attributes');
 
 $r = [];
-ac->request->with_action('read')->with_resource('Post')
+acl->request->with_action('read')->with_resource('Post')
   ->with_dynamic_attribute_extraction_function(sub($obj) { return { own => true } })
   ->yield(sub() { 'post' })
   ->granted(sub($entity) { push($r->@*, $entity) });
 is($r, ['post'], 'yield with dynamic attributes');
 
 $r = [];
-ac->request->with_action('read')->with_resource('Post')
+acl->request->with_action('read')->with_resource('Post')
   ->with_dynamic_attribute_extraction_function(sub($obj) { return { own => false } })
   ->yield(sub() { 'post' })
   ->denied(sub() { push($r->@*, 'd') });
