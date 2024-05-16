@@ -20,7 +20,7 @@ sub new($class, %params) {
   my $resource    = delete($params{resource});
   my $action      = delete($params{action});
   my $attributes  = delete($params{attributes}) // {};
-  my $dyn_attrs_f = delete($params{dyn_attrs_f}) // undef;
+  my $get_attrs = delete($params{get_attrs}) // undef;
 
   die("Unsupported params: ", join(', ', keys(%params))) if(keys(%params));
   die("acl is a required property") unless(defined($acl) && ref($acl) && $acl->isa('Authorization::AccessControl::ACL'));
@@ -31,7 +31,7 @@ sub new($class, %params) {
     _resource       => $resource,
     _action         => $action,
     _attributes     => $attributes,
-    _dyn_attrs_f    => $dyn_attrs_f,
+    _get_attrs      => $get_attrs,
   };
   bless($data, $class);
 }
@@ -59,7 +59,7 @@ sub __properties($self) {
     resource       => $self->{_resource},
     action         => $self->{_action},
     attributes     => $self->{_attributes},
-    dyn_attrs_f    => $self->{_dyn_attrs_f},
+    get_attrs    => $self->{_get_attrs},
   )
 }
 
@@ -91,10 +91,10 @@ sub with_attributes($self, $attrs) {
   );
 }
 
-sub with_dynamic_attribute_extraction_function($self, $sub) {
+sub with_get_attrs($self, $sub) {
   return __PACKAGE__->new(
     $self->__properties,
-    dyn_attrs_f => $sub,
+    get_attrs => $sub,
   );
 }
 
@@ -119,7 +119,7 @@ sub permitted($self) {
 }
 
 sub yield($self, $get_obj) {
-  unless(defined($self->{_dyn_attrs_f})) {
+  unless(defined($self->{_get_attrs})) {
     return Authorization::AccessControl::Dispatch->new(granted => false) unless($self->permitted);
     my $obj = $get_obj->();
     return Authorization::AccessControl::Dispatch->new(granted => undef) unless(defined($obj));
@@ -128,7 +128,7 @@ sub yield($self, $get_obj) {
   my $obj = $get_obj->();
   return Authorization::AccessControl::Dispatch->new(granted => undef) unless(defined($obj));
 
-  my $attrs = $self->{_dyn_attrs_f}->($obj);
+  my $attrs = $self->{_get_attrs}->($obj);
   $self = $self->with_attributes($attrs);
   return Authorization::AccessControl::Dispatch->new(granted => true, entity => $obj) if($self->permitted);
   return Authorization::AccessControl::Dispatch->new(granted => false);

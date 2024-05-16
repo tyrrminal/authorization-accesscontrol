@@ -36,14 +36,14 @@ is($r, ['post'], 'yield with necessary attributes');
 
 $r = [];
 acl->request->with_action('read')->with_resource('Post')
-  ->with_dynamic_attribute_extraction_function(sub($obj) { return { own => true } })
+  ->with_get_attrs(sub($obj) { return { own => true } })
   ->yield(sub() { 'post' })
   ->granted(sub($entity) { push($r->@*, $entity) });
 is($r, ['post'], 'yield with dynamic attributes');
 
 $r = [];
 acl->request->with_action('read')->with_resource('Post')
-  ->with_dynamic_attribute_extraction_function(sub($obj) { return { own => false } })
+  ->with_get_attrs(sub($obj) { return { own => false } })
   ->yield(sub() { 'post' })
   ->denied(sub() { push($r->@*, 'd') });
 is($r, ['d'], 'yield with incorrect dynamic attributes');
