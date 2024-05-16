@@ -39,7 +39,7 @@ sub new($class, %params) {
 }
 
 sub to_string($self, @params) {
-  my $roles = $self->{_roles}->@* ? '['.join(',', $self->{_roles}->@*).']' : '';
+  my $roles = ($self->{_roles}//[])->@* ? '['.join(',', ($self->{_roles}//[])->@*).']' : '';
   my $attributes = '';
   my $resource = $self->{_resource} // '{NO_RESOURCE}';
   my $action = $self->{_action} // '{NO_ACTION}';
