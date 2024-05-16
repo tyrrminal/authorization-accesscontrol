@@ -2,6 +2,8 @@ package Authorization::AccessControl::Grant;
 use v5.26;
 use warnings;
 
+# ABSTRACT: Encapsulation of the parameters of a privilege grant
+
 use Data::Compare;
 use Readonly;
 use Scalar::Util qw(looks_like_number);
@@ -103,6 +105,75 @@ sub accepts($self, %params) {
   return 0 unless($self->_satisfies_restrictions($attributes//{}));
   return 1;
 }
+
+=head1 NAME
+
+Authorization::AccessControl::Grant - Encapsulation of the parameters of a privilege grant
+
+=head1 SYNOPSIS
+
+  use Authorization::AccessControl::Grant;
+
+  my $grant = Authorization::AccessControl::Grant->new(
+    resource => 'Book',
+    action   => 'read',
+  );
+
+  $grant->accepts(resource => 'Book', action => 'read'); 
+
+=head1 DESCRIPTION
+
+This is a simple class to encapsulate the properties of a privilege grant:
+resource, action, roles, and restrictions, with the latter two optional. Methods 
+are available for checking all properties at once (L</accepts>) and determining 
+if another grant is exactly equal (used for duplicate detection) (L<is_equal>).
+
+Grant instances are immutable: none of their properties may be altered after
+object creation.
+
+=head1 METHODS
+
+=head2 new
+
+  Authorization::AccessControl::Grant->new( %params )
+
+Creates a new privilege grant instance. Normally, you should use
+L<Authorization::AccessControl::ACL/grant> rather than this constructor
+directly, to create and "register" instances. C<resource>, C<action>, C<role>,
+and C<restrictions> keys are respected in C<%params>
+
+=head2 role
+
+Accessor for the C<role> property
+
+=head2 resource
+
+Accessor for the C<resource> property
+
+=head2 action
+
+Accessor for the C<action> property
+
+=head2 restrictions
+
+Accessor for the C<restrictions> property
+
+=head2 is_equal
+
+  $grant1->is_equal($grant2)
+
+Returns true if all properties of both grants are exactly the same, false 
+otherwise
+
+=head2 accepts
+
+  $grant->accepts( %params )
+
+Returns true if the parameters meet all of the requirements of the grant, false
+otherwise. Specifically, this means that C<resource> and C<action> must match
+exactly, the grant's C<role> (if set) must be contained within the C<roles>
+ArrayRef, and every item in the grant's C<restrictions> must be matched by a
+corresponding entry with the same value in the C<attributes> HashRef
 
 =head1 AUTHOR
 

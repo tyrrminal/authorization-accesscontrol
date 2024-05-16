@@ -2,6 +2,8 @@ package Authorization::AccessControl::Request;
 use v5.26;
 use warnings;
 
+# ABSTRACT: Constructs an ACL request and checks if it is accepted
+
 use Authorization::AccessControl::Dispatch;
 use Readonly;
 use Scalar::Util qw(looks_like_number);
@@ -133,6 +135,98 @@ sub yield($self, $get_obj) {
   return Authorization::AccessControl::Dispatch->new(granted => true, entity => $obj) if($self->permitted);
   return Authorization::AccessControl::Dispatch->new(granted => false);
 }
+
+=head1 NAME
+
+Authorization::AccessControl::Request - constructs an ACL request and checks if it is accepted
+
+=head1 SYNOPSIS
+
+  return unless(acl->request
+    ->with_roles('admin')
+    ->with_resource('Media')
+    ->with_action('create')
+    ->permitted);
+
+  acl->request...->yield(sub() { ... })
+    ->granted(sub ($x) { ... })
+    ->denied(sub() { ... })
+
+=head1 DESCRIPTION
+
+This class is used to construct a request and check if the ACL accepts it. The 4
+C<with_*> methods are used to configure it, with later calls to the same method
+overwriting previous ones (with the exception of C<with_attributes> which merges
+instead).
+
+L</permitted> can be called directly, or via L</yield>, but either way, it will
+return false until L</with_resource> and L<with_action> have been called to
+configure it. 
+
+Request instances are immutable: none of their properties may be altered after
+object creation.
+
+=head1 METHODS
+
+=head2 with_roles
+
+  $req->with_roles( @roles )
+
+Returns a new request instance with its C<roles> property configured to match
+the parameter value.
+
+Chainable.
+
+=head2 with_action
+
+  $req->with_action( $action )
+
+Returns a new request instance with its C<action> property configured to match
+the parameter value.
+
+Chainable.
+
+=head2 with_resource
+
+  $req->with_resource( $resource )
+
+Returns a new request instance with its C<resource> property configured to match
+the parameter value.
+
+Chainable.
+
+=head2 with_attributes
+
+  $req->with_attributes( $attributes )
+
+Returns a new request instance with its C<attributes> property merged with the
+parameter value. 
+
+Chainable.
+
+=head2 with_get_attrs
+
+  $req->with_get_attrs( sub($value) { ... } )
+
+Returns a new request instance with its C<get_attrs> property configured to match
+the parameter value. This is a callback that receives a protected data value 
+(in L</yield>) and returns the corresponding dynamic attributes for it.
+
+Chainable.
+
+=head2 permitted
+
+  $req->permitted()
+
+Returns a boolean value reflecting whether the request's configured properties
+satisfy the requirements for any grant in the ACL.
+
+=head2 yield
+
+  $req->yield(sub() { ... })
+
+Returns an L<Authorization::AccessControl::Disapatch> instance corresponding
+to the data value returned by the callback and its permitted status.
 
 =head1 AUTHOR
 

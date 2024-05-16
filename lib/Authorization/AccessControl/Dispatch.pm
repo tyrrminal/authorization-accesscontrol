@@ -2,6 +2,8 @@ package Authorization::AccessControl::Dispatch;
 use v5.26;
 use warnings;
 
+# ABSTRACT: Dispatch result/status appropriately following ACL request yield
+
 use Readonly;
 
 use experimental qw(signatures);
@@ -40,6 +42,96 @@ sub null($self, $sub) {
 sub is_granted($self) {
   return ($self->{_granted}//0) != 0;
 }
+
+=head1 NAME
+
+Authorization::AccessControl::Dispatch - Dispatch result/status appropriately 
+following ACL request yield
+
+=head1 SYNOPSIS
+
+  use Authorization::AccessControl::Dispatch;
+
+  my $dispatch = Authorization::AccessControl::Dispatch->new(
+    granted => 1,
+    entity => 'some secure value');
+
+  $dispatch->denied(...); # not called
+  $dispatch->null(...); # not called
+  $dispatch->granted(sub($val) { $c->render(text => $val) }); # renders value
+
+  $request->yield(sub(){...})
+    ->granted(sub($val) { #handle success 
+    })
+    ->denied(sub() { # handle denial
+    })
+    ->null(sub() { # handle not found
+    })
+
+Handlers can be repeated:
+
+  $request->yield(sub(){...})
+    ->granted(sub($value){ $c->render(json => $value) })
+    ->granted(\&write_audit_log)
+
+=head1 DESCRIPTION
+
+This is a lightweight class that simply facilitates a "promise-style" callback
+interface for dealing with the result of 
+L<yield|Authorization::AccessControl::Request/yield> in 
+C<Authorization::AccessControl::Request>
+
+Dispatch instances are immutable: none of their properties may be altered after
+object creation.
+
+=head1 METHODS
+
+=head2 new
+
+  Authorization::AccessControl::Dispatch->new(granted => [0|1|undef], entity => ...)
+
+Creates a new Dispatch instance. C<granted> is a trinary value reflecting the
+request status: "truthy" indicates permitted, "falsy" indicates denied, and
+undefined indicates that necessary attributes could not be evaluated because the
+data value was not present. C<entity> is the data value, to be passed to 
+L</granted> handlers. If C<granted> is anything but "truthy", the C<entity> 
+value is immediately undefined before proceeding.
+
+=head2 granted
+
+  $dispatch->granted(sub($result){...})
+
+Registers a handler to be executed when the request is permitted by the ACL. 
+Handler receives one argument: the 
+L<yield|Authorization::AccessControl::Request/yield>ed value
+
+Repeatable. Chainable.
+
+=head2 denied
+
+  $dispatch->denied(sub(){...})
+
+Registers a handler to be executed when the request is denied by the ACL. 
+Handler receives no arguments.
+
+Repeatable. Chainable.
+
+=head2 null
+
+  $dispatch->null(sub(){ ... })
+
+Registers a handler to be executed when the 
+L<yield|Authorization::AccessControl::Request/yield>ed value is undefined. 
+Handler receives no arguments.
+
+Repeatable. Chainable.
+
+=head2 is_granted
+
+  $dispatch->is_granted()
+
+Returns a boolean value reflecting whether or not the request was permitted by 
+the ACL
 
 =head1 AUTHOR
 

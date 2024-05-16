@@ -2,7 +2,7 @@ package Authorization::AccessControl::ACL;
 use v5.26;
 use warnings;
 
-# ABSTRACT: 
+# ABSTRACT: Access Control List of granted privileges
 
 use Authorization::AccessControl::Grant;
 use Authorization::AccessControl::Request;
@@ -85,6 +85,124 @@ sub request($self) {
 sub _event($self, $type, $ctx) {
   $_->($ctx) foreach ($self->_base_instance->{_hooks}->{$type}->@*);
 }
+
+=head1 NAME
+
+Authorization::AccessControl::ACL - Access Control List of granted privileges
+
+=head1 SYNOPSIS
+
+  use Authorization::AccessControl::ACL;
+
+  my $acl = Authorization::AccessControl::ACL->new();
+  $acl->role("admin")
+    ->grant(User => "delete")
+    ->grant(User => "create");
+
+  $acl->grant(Book => "search")
+    ->grant(Book => 'delete', {owned => true});
+
+  my req = $acl->request;
+  ...
+
+=head1 DESCRIPTION
+
+The ACL class provides functionality for maintaining a set of granted privileges.
+Each item in the list is an instance of L<Authorization::AccessControl::Grant>.
+Every call to L</grant> creates a new grant instance and adds it to the ACL's
+list. By default, these grants are role-less: they apply to all users. Calling
+L</role> with a role name argument allows you to chain subsquent calls to 
+L</grant> off of it: such grants are configured for that role only.
+
+The full grant list can be obtained via the L</get_grants> method, although this
+is merely informational - the grants themselves are immutable and have little
+relevent functionality outside of the ACL.
+
+The L</request> method generates an L<Authorization::AccessControl::Request>, 
+which is used to check if a specific action is permitted by the ACL.
+
+Most ACL instance properties are immutable: with the exception of the list 
+contents, none of their properties may be altered after object creation.
+
+=head1 METHODS
+
+=head2 new
+
+  Authorizatrion::AccessControl::ACL->new()
+
+Constructor.
+
+Creates a new ACL instance. Each ACL instance created via this constructor is
+entirely unrelated. For a global persistent ACL, see 
+L<Authorization::AccessControl/acl>
+
+=head2 clone
+
+  $acl->clone()
+
+Creates a new ACL instance pre-populated with the cloned object's grants. Once
+cloned, the two instances are entirely unrelated and changes to one will not be
+reflected in the other.
+
+N.B. contextual L<role|/role> is not taken into account when cloning:
+
+  my $acl2 = $acl1->role('admin')->grant(User => "delete")->clone;
+  $acl2->grant(User => "update"); 
+
+The second grant is role-less, applying to all users, even though the admin role
+context was active when the clone was performed. This may cause you to 
+inadvertently grant more privileges than you expect if not attended to.
+
+=head2 role
+
+  $acl->role($role = undef)
+
+Returns a new I<dependent> instance of C<Authorization::AccessControl::ACL>
+facilitating chaining in order to create role-specific grants. Dependent 
+instances share a grant list with their "parent".
+
+The C<$role> argument is optional, if omitted or C<undef>, the returned instance
+becomes role-less. If present, should be a string.
+
+Chainable.
+
+=head2 grant
+
+  $acl->grant($resource => $action)
+
+Creates a privilege L<Authorization::AccessControl::Grant> and adds it to the 
+access control list.
+
+Chainable.
+
+=head2 get_grants
+
+  $acl->get_grants()
+
+Returns an array of all grants contained in the access control list.
+
+=head2 request
+
+  $acl->request()
+
+Returns an L<Authorization::AccessControl::Request> instance linked to this ACL.
+Subsequent changes to the ACL will be taken into account if made prior to the 
+request being evaluated. L</clone> first to avoid the implications of this 
+behavior, if required.
+
+=head2 hook
+
+  $acl->hook(on_permit|on_deny => sub {})
+
+Register a callback to be executed when a permission request is granted or 
+denied, such as for comprehensive authorization logging. Multiple hooks may be
+registered for each status, and will be called in order when the event occurs.
+
+C<on_permit> handlers receive a L<Authorization::AccessControl::Grant> that 
+accepted the request as their argument.
+
+C<on_deny> handlers receive a L<Authorization::AccessControl::Request> that 
+failed to be accepted by any grant as their argument.
 
 =head1 AUTHOR
 
