@@ -1,5 +1,8 @@
 Revision history for perl distribution Authorization::AccessControl
 
+0.03      2024-05-16T10:52:43-05:00
+  - Don't mark yielded entities as read-only in dispatch
+
 0.02      2024-05-16T09:35:04-05:00
   - Clone copies hooks as well
 
