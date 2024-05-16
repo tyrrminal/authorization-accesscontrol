@@ -64,22 +64,22 @@ sub restrictions($self) {
   $self->{_restrictions}
 }
 
-sub satisfies_role($self, @roles) {
+sub _satisfies_role($self, @roles) {
   return 1 unless($self->{_role});
   return (grep { $_ eq $self->{_role} } @roles) > 0;
 }
 
-sub satisfies_resource($self, $resource) {
+sub _satisfies_resource($self, $resource) {
   return 0 unless(defined($resource));
   return $self->{_resource} eq $resource
 }
 
-sub satisfies_action($self, $action) {
+sub _satisfies_action($self, $action) {
   return 0 unless(defined($action));
   return $self->{_action} eq $action;
 }
 
-sub satisfies_restrictions($self, $attributes) {
+sub _satisfies_restrictions($self, $attributes) {
   my %attrs = $attributes->%*;
   delete($attrs{$_}) foreach (grep { !exists($self->{_restrictions}->{$_}) } keys(%attrs));
   my $v = Compare($self->{_restrictions}, \%attrs);
@@ -97,10 +97,10 @@ sub is_equal($self, $priv) {
 sub accepts($self, %params) {
   my ($roles, $resource, $action, $attributes) = @params{qw(roles resource action attributes)};
 
-  return 0 unless($self->satisfies_resource($resource));
-  return 0 unless($self->satisfies_action($action));
-  return 0 unless($self->satisfies_role(($roles//[])->@*));
-  return 0 unless($self->satisfies_restrictions($attributes//{}));
+  return 0 unless($self->_satisfies_resource($resource));
+  return 0 unless($self->_satisfies_action($action));
+  return 0 unless($self->_satisfies_role(($roles//[])->@*));
+  return 0 unless($self->_satisfies_restrictions($attributes//{}));
   return 1;
 }
 
