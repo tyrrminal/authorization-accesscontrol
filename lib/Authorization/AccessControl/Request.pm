@@ -100,9 +100,9 @@ sub with_get_attrs($self, $sub) {
   );
 }
 
-sub permitted($self) {
-  return false unless(defined($self->{_resource}));
-  return false unless(defined($self->{_action}));
+sub _applicable_grants($self) {
+  return undef unless(defined($self->{_resource}));
+  return undef unless(defined($self->{_action}));
 
   my @grants = 
     grep { $_->accepts(
@@ -112,8 +112,23 @@ sub permitted($self) {
       attributes     => $self->{_attributes},
     ) } 
     $self->{_acl}->get_grants;
-  if(@grants) {
-    $self->{_acl}->_event(on_permit => $grants[0]); 
+
+  return \@grants;
+}
+
+sub precheck($self) {
+  my $grants = $self->_applicable_grants;
+  return false unless(defined($grants));
+
+  return $grants->@* > 0;
+}
+
+sub permitted($self) {
+  my $grants = $self->_applicable_grants;
+  return false unless(defined($grants));
+  
+  if($grants->@*) {
+    $self->{_acl}->_event(on_permit => $grants->[0]); 
     return true;
   }
   $self->{_acl}->_event(on_deny => $self);
@@ -213,6 +228,15 @@ the parameter value. This is a callback that receives a protected data value
 (in L</yield>) and returns the corresponding dynamic attributes for it.
 
 Chainable.
+
+=head2 precheck
+
+  $req->precheck()
+
+Identical to L</permitted>, except that C<on_perimit> and C<on_deny> handlers are not invoked.
+Should only be used for preauthorizing an action (i.e., to determine what options to show the
+user)
+
 
 =head2 permitted
 
